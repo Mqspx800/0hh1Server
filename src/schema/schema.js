@@ -25,6 +25,7 @@ const typeDefs = gql`
     board: Board!
     dupeCol: [Int!]
     dupeRow: [Int!]
+    culpritsCoords: [Coords!]
   }
 
   type Mutation {
@@ -52,19 +53,21 @@ const resolvers = {
       return null;
     },
     culpritsCoords() {
-      if (newGame) return game.culprits(newGame);
-      throw new Error("Game not initialized");
+      if (newGame) return game.culprits(newGame.colsAndRows);
+      return null;
     }
   },
   Mutation: {
-    clickOnTile(root, { x, y }, ctx) {
+    async clickOnTile(root, { x, y }, ctx) {
       if (newGame) {
         const currentValue = newGame.colsAndRows[y][x];
         let newNum = currentValue === 1 ? 2 : 1;
         newGame.colsAndRows[y][x] = newNum;
         const dupeRow = game.duplicatedRow(newGame.colsAndRows);
         const dupeCol = game.duplicatedCols(newGame.colsAndRows);
-        return { board: newGame, dupeCol, dupeRow };
+        const culprits = await game.culprits(newGame.colsAndRows);
+        console.log(culprits)
+        return { board: newGame, dupeCol, dupeRow, culprits };
       }
       throw new Error("Game is not initialized");
     }
