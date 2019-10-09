@@ -65,9 +65,8 @@ const resolvers = {
         newGame.colsAndRows[y][x] = newNum;
         const dupeRow = game.duplicatedRow(newGame.colsAndRows);
         const dupeCol = game.duplicatedCols(newGame.colsAndRows);
-        const culprits = await game.culprits(newGame.colsAndRows);
-        console.log(culprits)
-        return { board: newGame, dupeCol, dupeRow, culprits };
+        const culpritsCoords = await game.culprits(newGame.colsAndRows);
+        return { board: newGame, dupeCol, dupeRow, culpritsCoords };
       }
       throw new Error("Game is not initialized");
     }
