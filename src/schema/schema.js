@@ -8,6 +8,7 @@ const typeDefs = gql`
     board: Board
     dupeRow: [Int!]
     dupeCol: [Int!]
+    culpritsCoords: [Coords!]
   }
 
   type Board {
@@ -49,6 +50,10 @@ const resolvers = {
     dupeRow() {
       if (newGame) return game.duplicatedRow(newGame.colsAndRows);
       return null;
+    },
+    culpritsCoords() {
+      if (newGame) return game.culprits(newGame);
+      throw new Error("Game not initialized");
     }
   },
   Mutation: {
@@ -56,9 +61,7 @@ const resolvers = {
       if (newGame) {
         const currentValue = newGame.colsAndRows[y][x];
         let newNum = currentValue === 1 ? 2 : 1;
-        if (game.isPossibleMove(newGame.colsAndRows, y, x, newNum)) {
-          newGame.colsAndRows[y][x] = newNum;
-        }
+        newGame.colsAndRows[y][x] = newNum;
         const dupeRow = game.duplicatedRow(newGame.colsAndRows);
         const dupeCol = game.duplicatedCols(newGame.colsAndRows);
         return { board: newGame, dupeCol, dupeRow };
