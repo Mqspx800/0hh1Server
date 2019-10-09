@@ -6,8 +6,8 @@
 - Jest for TDD
 
 ## testing
--- in order to run test scripts, first to change babel preset env into @babel/preset-env and run command npm test
--- default setting is esnext
+- in order to run test scripts, first to change babel preset env into @babel/preset-env and run command npm test
+- default setting is esnext
 
 test command
 ```
