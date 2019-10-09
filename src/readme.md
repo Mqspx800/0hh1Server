@@ -1,2 +1,0 @@
--- in order for jest to run, need to change babel preset env into @babel/preset-env
--- default setting is esnext
