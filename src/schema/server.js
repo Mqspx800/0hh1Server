@@ -6,40 +6,6 @@ import cors from "cors";
 import { ApolloServer } from "apollo-server-express";
 import {importSchema} from 'graphql-import'
 
-// const typeDefs = gql`
-//   type Query {
-//     boardInit(size: Int!): Board!
-//     board: Board
-//     dupeRow: [Int!]
-//     dupeCol: [Int!]
-//     culpritsCoords: [Coords!]
-//   }
-
-//   type Board {
-//     colsAndRows: [[Int!]!]
-//     locked: [Coords]
-//   }
-
-//   type Coords {
-//     x: Int
-//     y: Int
-//   }
-
-//   type BoardWithDupeValue {
-//     board: Board!
-//     dupeCol: [Int!]
-//     dupeRow: [Int!]
-//     culpritsCoords: [Coords!]
-//   }
-
-//   type Mutation {
-//     clickOnTile(x: Int!, y: Int!): BoardWithDupeValue
-//   }
-
-//   type Subscription {
-//     boardUpdated: BoardWithDupeValue
-//   }
-// `;
 
 const typeDefs = importSchema("./src/schema/schema.graphql")
 let newGame;
