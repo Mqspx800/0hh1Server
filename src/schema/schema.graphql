@@ -1,0 +1,33 @@
+type Query {
+  board: Board
+  dupeRow: [Int!]
+  dupeCol: [Int!]
+  culpritsCoords: [Coords!]
+  percentageCompleted:Int
+}
+
+type Board {
+  colsAndRows: [[Int!]!]
+  locked: [Coords]
+}
+
+type Coords {
+  x: Int
+  y: Int
+}
+
+type BoardWithDupeValue {
+  board: Board!
+  dupeCol: [Int!]
+  dupeRow: [Int!]
+  culpritsCoords: [Coords!]
+}
+
+type Mutation {
+  boardInit(size: Int!): Boolean!
+  clickOnTile(x: Int!, y: Int!): BoardWithDupeValue
+}
+
+type Subscription {
+  boardUpdated: BoardWithDupeValue
+}

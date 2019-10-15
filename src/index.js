@@ -1,32 +1,15 @@
-import koa from "koa";
-import koarouter from "koa-router";
-import cors from '@koa/cors'
-import bodyParser from "koa-bodyparser";
-import { graphqlKoa, graphiqlKoa } from "apollo-server-koa";
-import schema from "./schema/schema";
+import express from "express";
+import schema from "./schema/server";
+import { createServer } from "http";
 
-const app = new koa();
-const router = new koarouter();
 const port = process.env.PORT || 4000;
 
+const app = express();
 
-router.post('/graphql', bodyParser(), graphqlKoa({ schema }));
-router.get('/graphql', graphqlKoa({ schema }));
+schema.applyMiddleware({ app });
+const httpserver = createServer(app);
+schema.installSubscriptionHandlers(httpserver);
 
-router.get(
-  "/graphiql",
-  graphiqlKoa({
-    endpointURL: "/graphql"
-  })
+httpserver.listen({ port }, () =>
+  console.log(`server listening on port ${port}`)
 );
-
-app.use(cors())
-app.use(router.routes());
-app.use(router.allowedMethods());
-
-app.listen(port, () => {
-  const url = `http://localhost:${port}`;
-  console.log(
-    `access server enpoint is at ${url}/graphql\n, graphiql playground is at address ${url}/graphiql`
-  );
-});
