@@ -1,9 +1,9 @@
 type Query {
-  boardInit(size: Int!): Board!
   board: Board
   dupeRow: [Int!]
   dupeCol: [Int!]
   culpritsCoords: [Coords!]
+  percentageCompleted:Int
 }
 
 type Board {
@@ -24,6 +24,7 @@ type BoardWithDupeValue {
 }
 
 type Mutation {
+  boardInit(size: Int!): Boolean!
   clickOnTile(x: Int!, y: Int!): BoardWithDupeValue
 }
 

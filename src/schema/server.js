@@ -4,21 +4,17 @@ import game from "../../lib/game";
 import { PubSub } from "apollo-server";
 import cors from "cors";
 import { ApolloServer } from "apollo-server-express";
-import {importSchema} from 'graphql-import'
+import { importSchema } from "graphql-import";
+const typeDefs = importSchema("./src/schema/schema.graphql");
 
-
-const typeDefs = importSchema("./src/schema/schema.graphql")
 let newGame;
 const pubsub = new PubSub();
 const resolvers = {
   Query: {
-    async boardInit(parent, args, ctx, info) {
-      if(!newGame)
-      newGame = await game.fillBoard(args.size);
-      return newGame;
-    },
     board() {
-      if (newGame) return newGame;
+      if (newGame) {
+        return newGame;
+      }
       throw new Error("Game not initialized");
     },
     dupeCol() {
@@ -35,6 +31,22 @@ const resolvers = {
     }
   },
   Mutation: {
+    boardInit(parent, args, ctx, info) {
+      try {
+        newGame = game.fillBoard(args.size);
+        pubsub.publish("boardUpdated", {
+          boardUpdated: {
+            board: newGame,
+            dupeCol: null,
+            dupeRow: null,
+            culpritsCoords: null
+          }
+        });
+        return true;
+      } catch (err) {
+        throw new Error("Initialize fail");
+      }
+    },
     async clickOnTile(root, { x, y }, ctx) {
       if (newGame) {
         const currentValue = newGame.colsAndRows[y][x];
@@ -68,9 +80,9 @@ const schema = new ApolloServer({
     endpoint: "http://localhost:4000/graphql",
     settings: {
       "editor.theme": "light"
-    },
-    cors: cors()
-  }
+    }
+  },
+  cors: cors()
 });
 
 export default schema;
