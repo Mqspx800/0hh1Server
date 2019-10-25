@@ -3,7 +3,8 @@ type Query {
   dupeRow: [Int!]
   dupeCol: [Int!]
   culpritsCoords: [Coords!]
-  percentageCompleted:Int
+  percentageCompleted: Int
+  getTokenString: String!
 }
 
 type Board {
@@ -24,10 +25,16 @@ type BoardWithDupeValue {
 }
 
 type Mutation {
-  boardInit(size: Int!): Boolean!
+  joinRoom(mode: GameMode!): Boolean
   clickOnTile(x: Int!, y: Int!): BoardWithDupeValue
+  ready:Boolean
 }
 
 type Subscription {
   boardUpdated: BoardWithDupeValue
+}
+
+enum GameMode {
+  single
+  multiple
 }
