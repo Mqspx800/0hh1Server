@@ -4,27 +4,30 @@ import cors from "cors";
 import { ApolloServer } from "apollo-server-express";
 import { importSchema } from "graphql-import";
 import { getToken, getUniqueID } from "../../lib/auth";
-import roomManager from "../../lib/roomManage";
+import {
+  createRoom,
+  joinOrCreateMultipleGame,
+  getRoomWithSessionID
+} from "../../lib/roomManage";
 const typeDefs = importSchema("./src/schema/schema.graphql");
-
 const roomList = [];
 const pubsub = new PubSub();
 
 const resolvers = {
   Query: {
-    board(_, __, {room}) {
-      return room.boards
+    board(_, __, { room }) {
+      return room.boards;
     },
-    dupeCol() {
-      if (newGame) return game.duplicatedCols(newGame.colsAndRows);
+    dupeCol(_, __, { board }) {
+      if (board) return game.duplicatedCols(board.colsAndRows);
       return null;
     },
-    dupeRow() {
-      if (newGame) return game.duplicatedRow(newGame.colsAndRows);
+    dupeRow(_, __, { board }) {
+      if (board) return game.duplicatedRow(board.colsAndRows);
       return null;
     },
-    culpritsCoords() {
-      if (newGame) return game.culprits(newGame.colsAndRows);
+    culpritsCoords(_, __, { board }) {
+      if (board) return game.culprits(board.colsAndRows);
       return null;
     },
     getTokenString() {
@@ -32,36 +35,40 @@ const resolvers = {
     }
   },
   Mutation: {
-    joinRoom(parent, { mode }, { sessionID, room }, info) {
+    joinRoom(parent, { mode }, { sessionID }, info) {
+      const room = getRoomWithSessionID(roomList, sessionID);
       try {
         if (room) throw new Error("Player already in a room");
-        if (mode === "single")
-          roomManager.createRoom(sessionID, mode, roomList);
-        else
-          roomManager.joinOrCreateMultipleGame(
-            { sessionID, ready: false },
-            roomList
-          );
+        if (mode === "single") {
+          createRoom(sessionID, mode, roomList);
+          return true;
+        } else {
+          joinOrCreateMultipleGame( sessionID, roomList);
+          return true;
+        }
       } catch (err) {
         throw new Error(err);
       }
     },
-    ready(_, __, { sessionID, room }) {
+    ready(_, __, { sessionID }) {
       try {
-        const p = room.players.find(p => p === sessionID);
-        p.ready == true;
+        const room = getRoomWithSessionID(roomList, sessionID);
+        const player = room.players.find(p => p.id === sessionID);
+        player.ready = true;
+        if (room.allPlayersReady()) room.start();
+        return room.boards;
       } catch (error) {
         throw new Error(error);
       }
     },
-    clickOnTile(root, { x, y }, ctx) {
-      if (newGame) {
+    clickOnTile(root, { x, y }, { board }) {
+      if (board) {
         const currentValue = newGame.colsAndRows[y][x];
         let newNum = currentValue === 1 ? 2 : 1;
-        newGame.colsAndRows[y][x] = newNum;
-        const dupeRow = game.duplicatedRow(newGame.colsAndRows);
-        const dupeCol = game.duplicatedCols(newGame.colsAndRows);
-        const culpritsCoords = game.culprits(newGame.colsAndRows);
+        board.colsAndRows[y][x] = newNum;
+        const dupeRow = game.duplicatedRow(board.colsAndRows);
+        const dupeCol = game.duplicatedCols(board.colsAndRows);
+        const culpritsCoords = game.culprits(board.colsAndRows);
         pubsub.publish("boardUpdated", {
           boardUpdated: { board: newGame, dupeCol, dupeRow, culpritsCoords }
         });
@@ -87,8 +94,7 @@ const schema = new ApolloServer({
       } else {
         const token = req.headers.authorization || "";
         const sessionID = getUniqueID(token) || "";
-        room = roomManager.getRoomWithSessionID(rooomList,sessionID) || null;
-        return { sessionID, room };
+        return { sessionID };
       }
     } catch (err) {
       console.error(err);
@@ -97,7 +103,7 @@ const schema = new ApolloServer({
   playground: {
     endpoint: "http://localhost:4000/graphql",
     settings: {
-      "editor.theme": "light"
+      "editor.theme": "dark"
     }
   },
   cors: cors()

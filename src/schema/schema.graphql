@@ -1,5 +1,5 @@
 type Query {
-  board: Board
+  board: [Board]
   dupeRow: [Int!]
   dupeCol: [Int!]
   culpritsCoords: [Coords!]
@@ -27,7 +27,7 @@ type BoardWithDupeValue {
 type Mutation {
   joinRoom(mode: GameMode!): Boolean
   clickOnTile(x: Int!, y: Int!): BoardWithDupeValue
-  ready:Boolean
+  ready:[Board]!
 }
 
 type Subscription {
