@@ -1,13 +1,14 @@
 import game from "../../lib/game";
 import { PubSub } from "apollo-server";
 import cors from "cors";
-import { ApolloServer } from "apollo-server-express";
+import { ApolloServer, withFilter } from "apollo-server-express";
 import { importSchema } from "graphql-import";
 import { getToken, getUniqueID } from "../../lib/auth";
 import {
   createRoom,
   joinOrCreateMultipleGame,
-  getRoomWithSessionID
+  getRoomWithSessionID,
+  getBoardBySessionID
 } from "../../lib/roomManage";
 const typeDefs = importSchema("./src/schema/schema.graphql");
 const roomList = [];
@@ -15,18 +16,21 @@ const pubsub = new PubSub();
 
 const resolvers = {
   Query: {
-    board(_, __, { room }) {
-      return room.boards;
+    board(_, __, { sessionID }) {
+      return getBoardBySessionID(roomList, sessionID);
     },
-    dupeCol(_, __, { board }) {
+    dupeCol(_, __, { sessionID }) {
+      board = getBoardBySessionID(sessionID);
       if (board) return game.duplicatedCols(board.colsAndRows);
       return null;
     },
-    dupeRow(_, __, { board }) {
+    dupeRow(_, __, { sessionID }) {
+      board = getBoardBySessionID(sessionID);
       if (board) return game.duplicatedRow(board.colsAndRows);
       return null;
     },
-    culpritsCoords(_, __, { board }) {
+    culpritsCoords(_, __, { sessionID }) {
+      board = getBoardBySessionID(sessionID);
       if (board) return game.culprits(board.colsAndRows);
       return null;
     },
@@ -36,14 +40,14 @@ const resolvers = {
   },
   Mutation: {
     joinRoom(parent, { mode }, { sessionID }, info) {
-      const room = getRoomWithSessionID(roomList, sessionID);
       try {
+        const room = getRoomWithSessionID(roomList, sessionID);
         if (room) throw new Error("Player already in a room");
         if (mode === "single") {
           createRoom(sessionID, mode, roomList);
           return true;
         } else {
-          joinOrCreateMultipleGame( sessionID, roomList);
+          joinOrCreateMultipleGame(sessionID, roomList);
           return true;
         }
       } catch (err) {
@@ -55,32 +59,44 @@ const resolvers = {
         const room = getRoomWithSessionID(roomList, sessionID);
         const player = room.players.find(p => p.id === sessionID);
         player.ready = true;
-        if (room.allPlayersReady()) room.start();
-        return room.boards;
+        if (room.allPlayersReady()) {
+          room.start();
+          return room.boards;
+        }
+        return null;
       } catch (error) {
         throw new Error(error);
       }
     },
-    clickOnTile(root, { x, y }, { board }) {
+    clickOnTile(root, { x, y }, { sessionID }) {
+      let board = getBoardBySessionID(roomList, sessionID);
       if (board) {
-        const currentValue = newGame.colsAndRows[y][x];
+        const currentValue = board.colsAndRows[y][x];
         let newNum = currentValue === 1 ? 2 : 1;
         board.colsAndRows[y][x] = newNum;
         const dupeRow = game.duplicatedRow(board.colsAndRows);
         const dupeCol = game.duplicatedCols(board.colsAndRows);
         const culpritsCoords = game.culprits(board.colsAndRows);
         pubsub.publish("boardUpdated", {
-          boardUpdated: { board: newGame, dupeCol, dupeRow, culpritsCoords }
+          boardUpdated: { sessionID, board, dupeCol, dupeRow, culpritsCoords }
         });
-        return { board: newGame, dupeCol, dupeRow, culpritsCoords };
+        return { sessionID, board, dupeCol, dupeRow, culpritsCoords };
       }
       throw new Error("Game is not initialized");
     }
   },
   Subscription: {
-    boardUpdated: {
-      subscribe: () => pubsub.asyncIterator("boardUpdated")
-    }
+    boardUpdated: withFilter(
+      () => pubsub.asyncIterator("boardUpdated"),
+      (payload, variables) => {
+        const room = getRoomWithSessionID(variables.sessionID);
+        return (
+          room &&
+          room.players.some(s => s.id === variables.sessionID) &&
+          variables.sessionID != payload.boardUpdated.sessionID
+        );
+      }
+    )
   }
 };
 
