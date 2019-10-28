@@ -32,7 +32,7 @@ type Mutation {
 }
 
 type Subscription {
-  boardUpdated(sessionID:String!): BoardWithDupeValue
+  opponentBoardUpdated(sessionID:String!): BoardWithDupeValue
 }
 
 enum GameMode {

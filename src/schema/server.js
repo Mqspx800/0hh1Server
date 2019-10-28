@@ -1,7 +1,7 @@
 import game from "../../lib/game";
-import { PubSub } from "apollo-server";
+import { PubSub, withFilter } from "apollo-server";
 import cors from "cors";
-import { ApolloServer, withFilter } from "apollo-server-express";
+import { ApolloServer } from "apollo-server-express";
 import { importSchema } from "graphql-import";
 import { getToken, getUniqueID } from "../../lib/auth";
 import {
@@ -77,8 +77,14 @@ const resolvers = {
         const dupeRow = game.duplicatedRow(board.colsAndRows);
         const dupeCol = game.duplicatedCols(board.colsAndRows);
         const culpritsCoords = game.culprits(board.colsAndRows);
-        pubsub.publish("boardUpdated", {
-          boardUpdated: { sessionID, board, dupeCol, dupeRow, culpritsCoords }
+        pubsub.publish("opponentBoardUpdated", {
+          opponentBoardUpdated: {
+            sessionID,
+            board,
+            dupeCol,
+            dupeRow,
+            culpritsCoords
+          }
         });
         return { sessionID, board, dupeCol, dupeRow, culpritsCoords };
       }
@@ -86,17 +92,21 @@ const resolvers = {
     }
   },
   Subscription: {
-    boardUpdated: withFilter(
-      () => pubsub.asyncIterator("boardUpdated"),
-      (payload, variables) => {
-        const room = getRoomWithSessionID(variables.sessionID);
-        return (
-          room &&
-          room.players.some(s => s.id === variables.sessionID) &&
-          variables.sessionID != payload.boardUpdated.sessionID
-        );
-      }
-    )
+    opponentBoardUpdated: {
+      subscribe: withFilter(
+        () => pubsub.asyncIterator("opponentBoardUpdated"),
+        (payload, variables) => {
+          const room = getRoomWithSessionID(
+            roomList,
+            getUniqueID(variables.sessionID)
+          );
+          return (
+            room &&
+            variables.sessionID != payload.opponentBoardUpdated.sessionID
+          );
+        }
+      )
+    }
   }
 };
 
