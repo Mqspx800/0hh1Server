@@ -38,6 +38,7 @@ const schema = new ApolloServer({
         return connection.context;
       } else {
         const token = req.headers.authorization || "";
+        // console.log('token',token)
         const sessionID = getUniqueID(token) || "";
         return { sessionID };
       }

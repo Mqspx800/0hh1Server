@@ -1,25 +1,16 @@
-import {getToken} from "../../lib/auth"
+import { getToken } from "../../lib/auth";
+import { getRoomWithSessionID } from "../../lib/roomManage";
+import game from "../../lib/game";
 
 export function board(_, __, { sessionID }) {
-  return getBoardBySessionID(roomList, sessionID);
-}
-
-export function dupeCol(_, __, { sessionID }) {
-  board = getBoardBySessionID(sessionID);
-  if (board) return game.duplicatedCols(board.colsAndRows);
-  return null;
-}
-
-export function dupeRow(_, __, { sessionID }) {
-  board = getBoardBySessionID(sessionID);
-  if (board) return game.duplicatedRow(board.colsAndRows);
-  return null;
-}
-
-export function culpritsCoords(_, __, { sessionID }) {
-  board = getBoardBySessionID(sessionID);
-  if (board) return game.culprits(board.colsAndRows);
-  return null;
+  const room = getRoomWithSessionID(sessionID);
+  const data = room.boards.map(board => {
+    const dupeCol = game.duplicatedCols(board.colsAndRows);
+    const dupeRow = game.duplicatedRow(board.colsAndRows);
+    const culpritsCoords = game.culprits(board.colsAndRows);
+    return { sessionID, board, dupeCol, dupeRow, culpritsCoords };
+  });
+  return data;
 }
 
 export function getTokenString() {

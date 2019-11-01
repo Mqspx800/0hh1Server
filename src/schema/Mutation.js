@@ -7,16 +7,16 @@ import {
 import game from "../../lib/game";
 import { pubsub } from "./server";
 
-export function joinRoom(parent, { mode }, ctx, info) {
+export function joinRoom(_, { mode }, { sessionID }) {
   try {
-    const room = getRoomWithSessionID(ctx.sessionID);
+    const room = getRoomWithSessionID(sessionID);
     if (room) throw new Error("Player already in a room");
     if (mode === "single") {
-      createRoom(ctx.sessionID, mode);
-      return true;
+      createRoom(sessionID, mode);
+      return mode;
     } else {
-      joinOrCreateMultipleGame(ctx.sessionID);
-      return true;
+      joinOrCreateMultipleGame(sessionID);
+      return "multiple";
     }
   } catch (err) {
     throw new Error(err);
@@ -30,9 +30,9 @@ export function ready(_, __, { sessionID }) {
     player.ready = true;
     if (room.allPlayersReady()) {
       room.start();
-      return room.boards;
+      return true
     }
-    return null;
+    return false;
   } catch (error) {
     throw new Error(error);
   }
